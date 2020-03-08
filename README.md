@@ -1,6 +1,8 @@
-# sam-hello-world
+# sam-codebuild-auto-build
 
-This project contains source code that serves as a base template for other SAM applications. This project is configured to use TypeScript, ESLint, and Prettier.
+This application automatically triggers a CodeBuild project everytime a pull request is created or updated in CodeCommit. It also comments the build details in the pull request for easier navigation.
+
+This project is configured to use TypeScript, ESLint, and Prettier.
 
 ## Deploy the sample application
 
