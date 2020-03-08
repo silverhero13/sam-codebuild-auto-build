@@ -2,14 +2,176 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: ---
 
+Parameters:
+  RegionParameter:
+    Type: String
+  AccountIdParameter:
+    Type: String
+  RepositoryParameter:
+    Type: String
+
 Globals:
   Function:
     Timeout: 3
 
 Resources:
-  HelloWorldFunction:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: DeveloperToolsManagement
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - codebuild:StartBuild
+                Resource:
+                  - !GetAtt BuildProject.Arn
+              - Effect: Allow
+                Action:
+                  - codecommit:PostCommentForPullRequest
+                Resource:
+                  - Fn::Sub:
+                      - arn:aws:codecommit:${Region}:${AccountId}:${Repository}
+                      - Region: !Ref RegionParameter
+                        AccountId: !Ref AccountIdParameter
+                        Repository: !Ref RepositoryParameter
+        - PolicyName: BasicExecutionPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - "*"
+
+  BuildProjectServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: CodeBuildServiceRolePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: CloudWatchLogsPolicy
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - "*"
+              - Sid: CodeCommitPolicy
+                Effect: Allow
+                Action:
+                  - codecommit:GitPull
+                Resource:
+                  - "*"
+              - Sid: S3GetObjectPolicy
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                Resource:
+                  - "*"
+              - Sid: S3PutObjectPolicy
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  - "*"
+              - Sid: ECRPullPolicy
+                Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource:
+                  - "*"
+              - Sid: ECRAuthPolicy
+                Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource:
+                  - "*"
+              - Sid: S3BucketIdentity
+                Effect: Allow
+                Action:
+                  - s3:GetBucketAcl
+                  - s3:GetBucketLocation
+                Resource: "*"
+
+  BuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:3.0
+        ImagePullCredentialsType: CODEBUILD
+        Type: LINUX_CONTAINER
+      ServiceRole: !GetAtt BuildProjectServiceRole.Arn
+      Source:
+        Type: CODECOMMIT
+        Location:
+          Fn::Sub:
+            - https://git-codecommit.${Region}.amazonaws.com/v1/repos/${Repository}
+            - Region:
+                Ref: RegionParameter
+              Repository:
+                Ref: RepositoryParameter
+        BuildSpec: buildspec-feature.yaml
+
+  TriggerBuildProjectFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: app
       Handler: index.handler
       Runtime: nodejs12.x
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          CODE_BUILD_PROJECT_NAME: !Ref BuildProject
+          REGION: !Ref RegionParameter
+      Events:
+        PullRequestUpdated:
+          Type: CloudWatchEvent
+          Properties:
+            Pattern:
+              detail-type:
+                - "CodeCommit Pull Request State Change"
+              source:
+                - aws.codecommit
+              resources:
+                - Fn::Sub:
+                    - arn:aws:codecommit:${Region}:${AccountId}:${Repository}
+                    - Region: !Ref RegionParameter
+                      AccountId: !Ref AccountIdParameter
+                      Repository: !Ref RepositoryParameter
+              detail:
+                event:
+                  - pullRequestCreated
+                  - pullRequestSourceBranchUpdated

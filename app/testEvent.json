@@ -1,5 +1,27 @@
 {
-  "key1": "value1",
-  "key2": "value2",
-  "key3": "value3"
+  "version": "0",
+  "id": "b043cf43-2ea7-2d8d-e063-03b5b998bc95",
+  "detail-type": "CodeCommit Pull Request State Change",
+  "source": "aws.codecommit",
+  "account": "123456789012",
+  "time": "2017-12-12T03:42:35Z",
+  "region": "us-east-1",
+  "resources": ["arn:aws:codecommit:us-east-1:123456789012:my-new-repository"],
+  "detail": {
+    "sourceReference": "refs/heads/my-new-feature",
+    "lastModifiedDate": "Tue Dec 12 03:39:18 UTC 2017",
+    "author": "0123EXAMPLE0",
+    "pullRequestStatus": "Open",
+    "isMerged": "False",
+    "notificationBody": "A pull request event occurred in the following AWS CodeCommit repository: my-new-repository. arn:aws:iam::123456789012:user/admin updated the following PullRequest 201. The pull request was updated with one or more commits to the source branch: refs/heads/my-new-feature. For more information, go to the AWS CodeCommit console https://us-east-1.console.aws.amazon.com/codecommit/home?region=us-east-1#/repository/my-new-repository/pull-request/201",
+    "destinationReference": "refs/heads/master",
+    "pullRequestId": "201",
+    "callerUserArn": "arn:aws:iam::123456789012:user/admin",
+    "title": "My 201st Pull Request",
+    "creationDate": "Tue Dec 12 03:33:58 UTC 2017",
+    "repositoryNames": ["my-new-repository"],
+    "destinationCommit": "9c57EXAMPLE...",
+    "event": "pullRequestSourceBranchUpdated",
+    "sourceCommit": "ed25EXAMPLE"
+  }
 }
