@@ -1,7 +1,7 @@
 {
-  "name": "sam-hello-world",
+  "name": "sam-codebuild-auto-build",
   "version": "1.0.0",
-  "description": "Boilerplate TypeScript code for applications developed with AWS Serverless Application Model (SAM)",
+  "description": "Automatically initiate CodeBuild and comment build status on the pull request on create or update of CodeCommit pull request",
   "main": "index.js",
   "author": "John Gerald Agbayani",
   "license": "MIT",
